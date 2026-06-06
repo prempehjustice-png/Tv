@@ -1,0 +1,6 @@
+{
+  "name": "Global Live TV",
+  "description": "A live stream television app featuring free-to-view channels from the USA, UK, and Canada.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
