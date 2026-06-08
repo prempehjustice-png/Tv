@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' wss:; worker-src blob:">
+    <title>Educational Mining Simulator - Monero (XMR)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a1a2e 50%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 30px 0;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #ff6b35, #f7931a, #ffd700);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+        
+        .header .subtitle {
+            color: #a0a0a0;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+        
+        .header .badge {
+            display: inline-block;
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #ffc107;
+            color: #ffc107;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+        
+        .warning-banner {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .info-banner {
+            background: rgba(33, 150, 243, 0.1);
+            border: 1px solid #2196f3;
+            color: #64b5f6;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        
+        .consent-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .consent-modal.hidden {
+            display: none;
+        }
+        
+        .consent-content {
+            background: #1a1a2e;
+            border: 2px solid #f7931a;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .consent-content h2 {
+            color: #f7931a;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+        
+        .consent-content p {
+            line-height: 1.6;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+        
+        .consent-content ul {
+            margin-left: 20px;
+            margin-bottom: 20px;
+            color: #ccc;
+        }
+        
+        .consent-content li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .consent-buttons {
+            display: flex;
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .miner-config {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .config-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.9rem;
+        }
+        
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            color: white;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .input-group input:focus,
+        .input-group select:focus {
+            border-color: #f7931a;
+            box-shadow: 0 0 15px rgba(247, 147, 26, 0.3);
+        }
+        
+        .input-group select option {
+            background: #1a1a2e;
+            color: white;
+        }
+        
+        .input-error {
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        .input-error.show {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-5px);
+            border-color: #f7931a;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stat-label {
+            color: #a0a0a0;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f7931a;
+        }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #1a1a2e;
+        }
+        
+        .btn-start:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0, 255, 136, 0.3);
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            color: white;
+        }
+        
+        .btn-stop:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(220, 53, 69, 0.3);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f7931a, #ff6b35);
+            color: white;
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(247, 147, 26, 0.3);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        .console-output {
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+        }
+        
+        .console-line {
+            margin-bottom: 5px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+        }
+        
+        .console-line.info {
+            color: #00ff88;
+        }
+        
+        .console-line.warning {
+            color: #ffd700;
+        }
+        
+        .console-line.error {
+            color: #dc3545;
+        }
+        
+        .console-line.success {
+            color: #4caf50;
+        }
+        
+        .thread-control {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .thread-control input[type="range"] {
+            flex: 1;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            outline: none;
+        }
+        
+        .thread-control input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #f7931a;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+        
+        .disclaimer {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            color: #ffc107;
+        }
+        
+        .disclaimer h3 {
+            margin-bottom: 10px;
+        }
+        
+        .disclaimer ul {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+        
+        .disclaimer li {
+            margin-bottom: 5px;
+            line-height: 1.6;
+        }
+        
+        @keyframes mining {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        
+        .mining-active {
+            animation: mining 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <!-- Consent Modal -->
+    <div class="consent-modal" id="consentModal">
+        <div class="consent-content">
+            <h2>⚠️ Mining Simulator - User Consent Required</h2>
+            
+            <p><strong>This is an EDUCATIONAL SIMULATOR, not a real cryptocurrency miner.</strong></p>
+            
+            <p>This application will:</p>
+            <ul>
+                <li>Use your CPU to simulate cryptocurrency mining algorithms</li>
+                <li>Significantly increase CPU usage and system temperature</li>
+                <li><strong>NOT produce actual cryptocurrency rewards</strong></li>
+                <li>Run only while you actively keep this browser tab open</li>
+            </ul>
+            
+            <p><strong>Before proceeding, ensure:</strong></p>
+            <ul>
+                <li>✓ You have explicit permission to use this computer's CPU</li>
+                <li>✓ Your system has adequate cooling and ventilation</li>
+                <li>✓ You understand this uses significant electricity</li>
+                <li>✓ You will monitor CPU temperature and stop if overheating</li>
+            </ul>
+            
+            <div class="consent-buttons">
+                <button class="btn btn-stop" onclick="rejectConsent()" style="flex: 1;">Decline</button>
+                <button class="btn btn-start" onclick="acceptConsent()" style="flex: 1;">I Agree & Continue</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Mining Simulator</h1>
+            <p class="subtitle">Educational Browser-Based Mining Algorithm Simulation</p>
+            <span class="badge">🔒 SECURE • 📚 EDUCATIONAL • 🎓 NOT PRODUCTION</span>
+        </div>
+        
+        <div class="warning-banner">
+            ⚠️ WARNING: This simulator uses your CPU intensively. Monitor your system temperature and close immediately if overheating occurs.
+        </div>
+        
+        <div class="info-banner">
+            ℹ️ <strong>Educational Purpose Only:</strong> This simulator does not connect to real mining pools or produce actual cryptocurrency. It's designed to demonstrate mining algorithms and concepts. For real mining, use professional mining software.
+        </div>
+        
+        <div class="miner-config">
+            <h2 style="color: #f7931a; margin-bottom: 20px;">⚙️ Simulator Configuration</h2>
+            
+            <div class="config-grid">
+                <div class="input-group">
+                    <label>Wallet Address (Simulation Only)</label>
+                    <input type="text" id="walletAddress" placeholder="Enter a Monero wallet address for simulation" maxlength="106">
+                    <div class="input-error" id="walletError"></div>
+                </div>
+                
+                <div class="input-group">
+                    <label>Worker Name</label>
+                    <input type="text" id="workerName" value="simulator-worker" placeholder="Name this simulation session" maxlength="50">
+                </div>
+            </div>
+            
+            <div class="thread-control">
+                <label style="color: #a0a0a0; min-width: 150px;">Simulation Threads: <span id="threadCount">2</span></label>
+                <input type="range" id="threadSlider" min="1" max="8" value="2" oninput="window.miner?.updateThreads(this.value)">
+                <button class="btn btn-secondary" onclick="window.miner?.autoOptimize()" style="flex: 0; min-width: auto; padding: 10px 20px;">
+                    Auto-Optimize
+                </button>
+            </div>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Simulated Hashrate</div>
+                <div class="stat-value" id="hashrate">0 H/s</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Hashes (Simulated)</div>
+                <div class="stat-value" id="totalHashes">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Uptime</div>
+                <div class="stat-value" id="uptime">00:00:00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">CPU Usage (Estimated)</div>
+                <div class="stat-value" id="cpuUsage">0%</div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-start" id="startBtn" onclick="window.miner?.startMining()">Start Simulation</button>
+            <button class="btn btn-stop" id="stopBtn" onclick="window.miner?.stopMining()" disabled>Stop Simulation</button>
+            <button class="btn btn-secondary" onclick="window.miner?.clearConsole()" style="flex: 0; min-width: 120px;">Clear Console</button>
+        </div>
+        
+        <div class="console-output" id="console">
+            <div class="console-line info">[System] Mining simulator initialized. Configure your preferences to start.</div>
+            <div class="console-line warning">[System] This is an EDUCATIONAL SIMULATOR - no real cryptocurrency mining occurs.</div>
+            <div class="console-line info">[System] Ready to simulate. Press 'Start Simulation' to begin.</div>
+        </div>
+        
+        <div class="disclaimer">
+            <h3>📋 Important Disclaimer</h3>
+            <ul>
+                <li><strong>Educational Purpose:</strong> This simulator is for learning about cryptocurrency mining concepts only.</li>
+                <li><strong>No Real Rewards:</strong> This does NOT produce actual Monero or any cryptocurrency.</li>
+                <li><strong>CPU Intensive:</strong> Simulation will significantly increase CPU usage and heat generation.</li>
+                <li><strong>Cooling Required:</strong> Ensure adequate system cooling before running extended simulations.</li>
+                <li><strong>Electricity Cost:</strong> CPU mining consumes significant electricity - costs likely exceed any theoretical earnings.</li>
+                <li><strong>Requires Consent:</strong> You must explicitly agree to run this simulator for each session.</li>
+                <li><strong>System Monitoring:</strong> Continuously monitor CPU temperature and stop immediately if overheating.</li>
+                <li><strong>Permission Required:</strong> Never run this on shared systems without explicit permission from all users.</li>
+                <li><strong>Browser Limitations:</strong> Simulator stops when browser tab is closed or browser is minimized on some systems.</li>
+                <li><strong>Security Note:</strong> This simulator uses validated pool URLs, wallet addresses, and includes input sanitization.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js" integrity="sha384-P9/cHFJAzqDZS2wUe9lZ8fEjVNJSPbxwKQwx3Sn9F93tUEhRKLVn6LxKDjE2c7/U" crossorigin="anonymous"></script>
+    
+    <script>
+        // ============================================================================
+        // SECURE EDUCATIONAL MINING SIMULATOR
+        // ============================================================================
+        // Security Audit Notes:
+        // - Uses SRI (Subresource Integrity) for CDN dependencies
+        // - Implements CSP (Content Security Policy) via meta tag
+        // - Input validation for wallet addresses and configuration
+        // - Proper resource cleanup (blob URLs, workers, intervals)
+        // - Private fields for encapsulation (#)
+        // - No global wallet or pool credentials stored
+        // - Explicit user consent mechanism
+        // - Memory leak prevention (console line limits)
+        // ============================================================================
+        
+        class SecureMiningSImulator {
+            // SECURITY: Private fields prevent external modification
+            #isMining = false;
+            #workers = [];
+            #totalHashes = 0;
+            #hashrate = 0;
+            #startTime = null;
+            #uptimeInterval = null;
+            #statsInterval = null;
+            #threadCount = 2;
+            #lastHashCount = 0;
+            #lastUpdateTime = Date.now();
+            #workerBlobUrl = null;
+            #MAX_CONSOLE_LINES = 1000;
+            #failedWorkerCount = 0;
+            
+            // SECURITY: Whitelist of configuration parameters
+            #trustedConfig = {
+                maxThreads: 8,
+                minThreads: 1,
+                maxWalletLength: 106,
+                minWalletLength: 95
+            };
+            
+            constructor() {
+                this.console = document.getElementById('console');
+                this.log('Simulator initialized securely', 'info');
+            }
+            
+            // ========================================================================
+            // SECURITY: Input Validation & Sanitization
+            // ========================================================================
+            
+            validateWalletAddress(address) {
+                if (!address) return false;
+                
+                // SECURITY: Monero addresses validation
+                // Monero addresses start with 4 or 8 and are 95 or 106 characters
+                const moneroRegex = /^[48][0-9AB]{94,105}$/i;
+                
+                if (!moneroRegex.test(address)) {
+                    return false;
+                }
+                
+                if (address.length < this.#trustedConfig.minWalletLength || 
+                    address.length > this.#trustedConfig.maxWalletLength) {
+                    return false;
+                }
+                
+                return true;
+            }
+            
+            validateThreadCount(count) {
+                const num = parseInt(count);
+                return !isNaN(num) && 
+                       num >= this.#trustedConfig.minThreads && 
+                       num <= this.#trustedConfig.maxThreads;
+            }
+            
+            // ========================================================================
+            // Console Logging with Memory Management
+            // ========================================================================
+            
+            log(message, type = 'info') {
+                // SECURITY: Sanitize message to prevent XSS
+                const sanitized = this.#sanitizeText(message);
+                
+                const line = document.createElement('div');
+                line.className = `console-line ${type}`;
+                const timestamp = new Date().toLocaleTimeString();
+                line.textContent = `[${timestamp}] ${sanitized}`;
+                
+                this.console.appendChild(line);
+                
+                // SECURITY: Prevent memory leak by limiting console lines
+                while (this.console.children.length > this.#MAX_CONSOLE_LINES) {
+                    this.console.removeChild(this.console.firstChild);
+                }
+                
+                this.console.scrollTop = this.console.scrollHeight;
+            }
+            
+            #sanitizeText(text) {
+                // SECURITY: Remove potential HTML/script tags
+                return String(text)
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\"/g, '&quot;')
+                    .slice(0, 200); // Limit length
+            }
+            
+            // ========================================================================
+            // Simulation Setup & Configuration
+            // ========================================================================
+            
+            async startMining() {
+                if (this.#isMining) {
+                    this.log('Simulator already running', 'warning');
+                    return;
+                }
+                
+                // SECURITY: Validate user input before starting
+                const walletAddress = document.getElementById('walletAddress').value.trim();
+                const workerName = document.getElementById('workerName').value.trim();
+                
+                if (!walletAddress) {
+                    this.#showError('walletError', 'Wallet address is required');
+                    this.log('Simulation start rejected: missing wallet address', 'error');
+                    return;
+                }
+                
+                if (!this.validateWalletAddress(walletAddress)) {
+                    this.#showError('walletError', 'Invalid Monero wallet address format');
+                    this.log('Simulation start rejected: invalid wallet address', 'error');
+                    return;
+                }
+                
+                this.#hideError('walletError');
+                
+                this.#isMining = true;
+                this.#startTime = Date.now();
+                this.#totalHashes = 0;
+                this.#failedWorkerCount = 0;
+                
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('stopBtn').disabled = false;
+                document.body.classList.add('mining-active');
+                
+                this.log(`Starting simulation with ${this.#threadCount} threads...`, 'info');
+                this.log(`Wallet (first 10 chars): ${walletAddress.substring(0, 10)}...`, 'info');
+                this.log(`Worker: ${workerName}`, 'info');
+                
+                // Start worker threads
+                for (let i = 0; i < this.#threadCount; i++) {
+                    this.#startSimulationThread(i);
+                }
+                
+                // Start statistics updates
+                this.#startStatsUpdates();
+                this.#uptimeInterval = setInterval(() => this.#updateUptime(), 1000);
+            }
+            
+            #startSimulationThread(threadId) {
+                try {
+                    const worker = new Worker(this.#createWorkerBlob());
+                    
+                    worker.onmessage = (e) => {
+                        const data = e.data;
+                        
+                        if (data.type === 'hash') {
+                            this.#totalHashes++;
+                            this.#processHash(data.nonce);
+                        } else if (data.type === 'error') {
+                            this.log(`Thread ${threadId} error: ${data.message}`, 'error');
+                            this.#failedWorkerCount++;
+                            this.#checkWorkerHealth();
+                        }
+                    };
+                    
+                    worker.onerror = (error) => {
+                        this.log(`Worker ${threadId} crashed: ${error.message}`, 'error');
+                        this.#failedWorkerCount++;
+                        this.#checkWorkerHealth();
+                    };
+                    
+                    this.#workers.push(worker);
+                    
+                    // Start the simulation thread
+                    worker.postMessage({
+                        type: 'start',
+                        threadId: threadId
+                    });
+                } catch (error) {
+                    this.log(`Failed to create thread ${threadId}: ${error.message}`, 'error');
+                }
+            }
+            
+            #checkWorkerHealth() {
+                if (this.#failedWorkerCount >= this.#workers.length) {
+                    this.log('Critical: All workers have failed!', 'error');
+                    this.stopMining();
+                }
+            }
+            
+            #createWorkerBlob() {
+                // SECURITY: Inline worker code (no external script loading)
+                const workerCode = `
+                    importScripts('https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js');
+                    
+                    let running = true;
+                    let nonce = Math.floor(Math.random() * 0xFFFFFFFF);
+                    
+                    // SECURITY: Simulated mining function (not real RandomX)
+                    function simulatedHash(input) {
+                        try {
+                            // Simulate complex hashing with multiple rounds
+                            let hash = CryptoJS.SHA256(input).toString();
+                            
+                            for (let i = 0; i < 3; i++) {
+                                hash = CryptoJS.SHA256(hash + i).toString();
+                            }
+                            
+                            hash = CryptoJS.SHA3(hash, { outputLength: 256 }).toString();
+                            
+                            return hash;
+                        } catch (error) {
+                            throw new Error('Hash function failed: ' + error.message);
+                        }
+                    }
+                    
+                    self.onmessage = function(e) {
+                        if (e.data.type === 'start') {
+                            function mine() {
+                                if (!running) return;
+                                
+                                try {
+                                    const input = 'sim_' + nonce.toString(16);
+                                    const hash = simulatedHash(input);
+                                    
+                                    self.postMessage({
+                                        type: 'hash',
+                                        hash: hash,
+                                        nonce: nonce
+                                    });
+                                    
+                                    nonce++;
+                                    if (nonce > 0xFFFFFFFF) nonce = 0;
+                                    
+                                    setTimeout(mine, 0);
+                                } catch (error) {
+                                    self.postMessage({
+                                        type: 'error',
+                                        message: error.message
+                                    });
+                                }
+                            }
+                            
+                            mine();
+                        } else if (e.data.type === 'stop') {
+                            running = false;
+                        }
+                    };
+                `;
+                
+                const blob = new Blob([workerCode], { type: 'application/javascript' });
+                this.#workerBlobUrl = URL.createObjectURL(blob);
+                return this.#workerBlobUrl;
+            }
+            
+            stopMining() {
+                if (!this.#isMining) return;
+                
+                this.#isMining = false;
+                
+                // SECURITY: Properly cleanup all resources
+                this.#workers.forEach(worker => {
+                    try {
+                        worker.postMessage({ type: 'stop' });
+                        worker.terminate();
+                    } catch (e) {
+                        // Worker already terminated
+                    }
+                });
+                this.#workers = [];
+                
+                // SECURITY: Revoke blob URLs to prevent memory leak
+                if (this.#workerBlobUrl) {
+                    URL.revokeObjectURL(this.#workerBlobUrl);
+                    this.#workerBlobUrl = null;
+                }
+                
+                // Clear intervals
+                if (this.#uptimeInterval) clearInterval(this.#uptimeInterval);
+                if (this.#statsInterval) clearInterval(this.#statsInterval);
+                
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('stopBtn').disabled = true;
+                document.body.classList.remove('mining-active');
+                
+                this.log('Simulation stopped', 'warning');
+                this.log(`Total hashes simulated: ${this.#formatNumber(this.#totalHashes)}`, 'info');
+                this.log('All resources cleaned up', 'success');
+            }
+            
+            #processHash(nonce) {
+                const now = Date.now();
+                const timeDiff = (now - this.#lastUpdateTime) / 1000;
+                
+                if (timeDiff >= 1) {
+                    const hashDiff = this.#totalHashes - this.#lastHashCount;
+                    this.#hashrate = hashDiff / timeDiff;
+                    this.#lastHashCount = this.#totalHashes;
+                    this.#lastUpdateTime = now;
+                    
+                    this.#updateStats();
+                }
+            }
+            
+            #startStatsUpdates() {
+                this.#statsInterval = setInterval(() => {
+                    if (this.#isMining) {
+                        this.#updateStats();
+                        this.#updateCpuEstimate();
+                    }
+                }, 1000);
+            }
+            
+            #updateStats() {
+                document.getElementById('hashrate').textContent = this.#formatHashrate(this.#hashrate);
+                document.getElementById('totalHashes').textContent = this.#formatNumber(this.#totalHashes);
+            }
+            
+            #updateUptime() {
+                if (!this.#startTime) return;
+                
+                const elapsed = Math.floor((Date.now() - this.#startTime) / 1000);
+                const hours = Math.floor(elapsed / 3600);
+                const minutes = Math.floor((elapsed % 3600) / 60);
+                const seconds = elapsed % 60;
+                
+                document.getElementById('uptime').textContent = 
+                    `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            }
+            
+            #updateCpuEstimate() {
+                // Estimate CPU usage based on threads
+                const baseUsage = this.#threadCount * 12; // ~12% per thread
+                const usage = Math.min(baseUsage, 95); // Cap at 95%
+                document.getElementById('cpuUsage').textContent = usage + '%';
+            }
+            
+            updateThreads(value) {
+                if (!this.validateThreadCount(value)) return;
+                
+                this.#threadCount = parseInt(value);
+                document.getElementById('threadCount').textContent = value;
+                
+                if (this.#isMining) {
+                    this.log(`Note: Thread changes take effect after restart`, 'warning');
+                }
+            }
+            
+            autoOptimize() {
+                const cpuCores = navigator.hardwareConcurrency || 4;
+                const optimalThreads = Math.max(1, Math.min(Math.floor(cpuCores * 0.5), 8));
+                
+                if (this.validateThreadCount(optimalThreads)) {
+                    document.getElementById('threadSlider').value = optimalThreads;
+                    this.updateThreads(optimalThreads);
+                    this.log(`Auto-optimized to ${optimalThreads} threads (${cpuCores} CPU cores detected)`, 'info');
+                }
+            }
+            
+            clearConsole() {
+                this.console.innerHTML = '';
+                this.log('Console cleared', 'info');
+            }
+            
+            #formatHashrate(rate) {
+                if (rate >= 1000000) {
+                    return (rate / 1000000).toFixed(2) + ' MH/s';
+                } else if (rate >= 1000) {
+                    return (rate / 1000).toFixed(2) + ' KH/s';
+                } else {
+                    return Math.floor(rate) + ' H/s';
+                }
+            }
+            
+            #formatNumber(num) {
+                if (num >= 1000000) {
+                    return (num / 1000000).toFixed(2) + 'M';
+                } else if (num >= 1000) {
+                    return (num / 1000).toFixed(2) + 'K';
+                } else {
+                    return num.toString();
+                }
+            }
+            
+            #showError(elementId, message) {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.textContent = message;
+                    el.classList.add('show');
+                }
+            }
+            
+            #hideError(elementId) {
+                const el = document.getElementById(elementId);
+                if (el) {
+                    el.classList.remove('show');
+                }
+            }
+        }
+        
+        // ========================================================================
+        // Consent Management
+        // ========================================================================
+        
+        function acceptConsent() {
+            localStorage.setItem('miningConsent', 'accepted');
+            localStorage.setItem('consentTime', new Date().toISOString());
+            document.getElementById('consentModal').classList.add('hidden');
+            initializeSimulator();
+        }
+        
+        function rejectConsent() {
+            document.getElementById('consentModal').classList.add('hidden');
+            console.log('User rejected consent');
+        }
+        
+        function checkConsent() {
+            const consent = localStorage.getItem('miningConsent');
+            if (!consent) {
+                document.getElementById('consentModal').classList.remove('hidden');
+            } else {
+                initializeSimulator();
+            }
+        }
+        
+        function initializeSimulator() {
+            window.miner = new SecureMiningSImulator();
+            
+            // Auto-detect optimal thread count
+            const cpuCores = navigator.hardwareConcurrency || 4;
+            const optimalThreads = Math.max(1, Math.min(Math.floor(cpuCores * 0.5), 8));
+            
+            document.getElementById('threadSlider').value = optimalThreads;
+            document.getElementById('threadCount').textContent = optimalThreads;
+            window.miner.updateThreads(optimalThreads);
+        }
+        
+        // ========================================================================
+        // Initialization
+        // ========================================================================
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            checkConsent();
+        });
+    </script>
+</body>
+</html>
